@@ -6,4 +6,8 @@
 
 ## 내용
 
-### part3
+1. 프로젝트 셋업
+
+- 패키지 설치
+  - react-native-ventor-icons
+  - react-native-webview
