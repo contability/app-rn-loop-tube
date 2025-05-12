@@ -20,3 +20,9 @@
 
 - 패키지 설치
   - `yarn add query-string`
+
+3. 웹에서 앱으로, 앱에서 웹으로 메시지 보내기
+   WebView 통해서 할 수 있음.
+
+- `injectJavaScript()`
+- `window.ReactNativeWebView.postMessage(playerState)와 onMessage()`;
