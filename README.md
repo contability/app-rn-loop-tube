@@ -11,3 +11,12 @@
 - 패키지 설치
   - react-native-ventor-icons
   - react-native-webview
+
+2. 유튜브 영상 로드
+
+- 공식적인 API는 웹용 YouTube IFrame Player API만 제공하고 있음.
+- 이러한 경우 웹뷰를 이용해서 React Native에서 YouTube IFrame API를 사용할 수 있음.
+- https://developers.google.com/youtube/iframe_api_reference
+
+- 패키지 설치
+  - `yarn add query-string`

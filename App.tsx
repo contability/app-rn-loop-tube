@@ -1,131 +1,70 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import {useCallback, useState} from 'react';
 import {
-  ScrollView,
-  StatusBar,
+  Alert,
+  SafeAreaView,
   StyleSheet,
-  Text,
-  useColorScheme,
+  TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
-
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
-
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  /*
-   * To keep the template simple and small we're adding padding to prevent view
-   * from rendering under the System UI.
-   * For bigger apps the recommendation is to use `react-native-safe-area-context`:
-   * https://github.com/AppAndFlow/react-native-safe-area-context
-   *
-   * You can read more about it here:
-   * https://github.com/react-native-community/discussions-and-proposals/discussions/827
-   */
-  const safePadding = '5%';
-
-  return (
-    <View style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        style={backgroundStyle}>
-        <View style={{paddingRight: safePadding}}>
-          <Header/>
-        </View>
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            paddingHorizontal: safePadding,
-            paddingBottom: safePadding,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import queryString from 'query-string';
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  safearea: {flex: 1, backgroundColor: '#242424'},
+  inputContainer: {
+    backgroundColor: '#1A1A1A',
+    marginHorizontal: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  input: {
+    fontSize: 15,
+    color: '#AEAEB2',
+    // iOS와 android의 디자인 동일하게 맞추기 위해 적용
+    paddingVertical: 0,
+    flex: 1,
+    marginRight: 4,
   },
 });
+
+const App = () => {
+  const [url, setUrl] = useState('');
+  const [youtubeId, setYoutubeId] = useState('');
+  const onPressOpenLink = useCallback(() => {
+    const {
+      query: {v: id},
+    } = queryString.parseUrl(url);
+    console.log('🚀 ~ onPressOpenLink ~ id:', id);
+    if (typeof id === 'string') setYoutubeId(id);
+    else Alert.alert('질못된 URL입니다.');
+  }, [url]);
+  return (
+    <SafeAreaView style={styles.safearea}>
+      <View style={styles.inputContainer}>
+        <TextInput
+          placeholder="클릭하여 링크를 삽입하세요."
+          placeholderTextColor="#AEAEB2"
+          style={styles.input}
+          onChangeText={setUrl}
+          // value를 굳이 넣어주는 이유는 상태 관리와 관련이 있는데 입력 필드의 값이 항상 최신 상태와 동기화 되도록 보장할 수 있다.
+          // 특수한 경우에 입력이 오류가 났다고 가정한다면 실제 텍스트 인풋의 value와 url state의 값이 달라질 수 있따.
+          value={url}
+          // 뭘 입력하는 input인지에 따라 키보드 UI 달라짐.
+          inputMode="url"
+        />
+        {/* hitSlop: 버튼 영역을 넓혀줌. 이거 안주면 정확히 아이콘을 터치했을 때만 버튼이 작동하기 때문에 접근성에 좋지 않음. */}
+        <TouchableOpacity
+          hitSlop={{top: 10, bottom: 10, right: 10}}
+          onPress={onPressOpenLink}>
+          <Icon name="link-plus" color="#AEAEB2" size={24} />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
 
 export default App;
