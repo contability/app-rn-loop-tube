@@ -1,11 +1,10 @@
-// https://www.youtube.com/watch?v=rlh76p4T6qw
-
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Alert,
   Dimensions,
   SafeAreaView,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -62,13 +61,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  urlListContainer: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 72,
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  urlList: {
+    color: '#AEAEB2',
+  },
+  timeText: {
+    color: '#AEAEB2',
+    alignSelf: 'flex-end',
+    marginTop: 15,
+    marginRight: 20,
+    fontSize: 13,
+  },
 });
+
+const formatTime = (second: number) => {
+  const minute = Math.floor(second / 60);
+  const rematiningSeconds = second % 60;
+
+  const formattedMinute = String(minute).padStart(2, '0');
+  const formattedSecond = String(rematiningSeconds).padStart(2, '0');
+
+  return `${formattedMinute}:${formattedSecond}`;
+  // 19 -> 00:19
+};
 
 const App = () => {
   const [url, setUrl] = useState('');
   const [youtubeId, setYoutubeId] = useState('');
   // 유튜브가 플레이중인지 여부
   const [isPlaying, setIsPlaying] = useState(false);
+  const [durationInSec, setDurationInSec] = useState(0);
+  const [currentTimeInSec, setCurrentTimeInSec] = useState(0);
   const webViewRef = useRef<WebView>(null);
 
   const onPressOpenLink = useCallback(() => {
@@ -118,14 +150,22 @@ const App = () => {
                 });
               }
 
+              // 메시지 전송 프로토콜 함수
+              function postMessageToRN (type, data){
+                const message = JSON.stringify({type, data});
+                // 웹에서 앱으로 데이터 전송
+                window.ReactNativeWebView.postMessage(message);
+              }
+
               function onPlayerReady(event) {
                 // MEMO: 로드 완료 되면 자동 실행
                 // event.target.playVideo();
+                postMessageToRN('duration', player.getDuration());
               }
 
               function onPlayerStateChange(event) {
-              // 현재 영상이 재생중인지 아닌지 웹에서 앱으로 데이터 전송
-                window.ReactNativeWebView.postMessage(event.data);
+                // 현재 영상이 재생중인지 아닌지 웹에서 앱으로 데이터 전송
+                postMessageToRN('player-state', event.data);
               }
             </script>
           </body>
@@ -148,6 +188,34 @@ const App = () => {
       webViewRef.current?.injectJavaScript('player.pauseVideo(); true;');
     }
   }, []);
+
+  // durationInSec이 소수로 올 수 있기 때문에 Math.floor 적용
+  const durationText = useMemo(
+    () => formatTime(Math.floor(durationInSec)),
+    [durationInSec],
+  );
+
+  const currentTimeText = useMemo(
+    () => formatTime(Math.floor(currentTimeInSec)),
+    [currentTimeInSec],
+  );
+
+  useEffect(() => {
+    if (isPlaying) {
+      const id = setInterval(() => {
+        if (webViewRef.current != null) {
+          webViewRef.current.injectJavaScript(
+            'postMessageToRN("current-time", player.getCurrentTime()); true;',
+          );
+        }
+      }, 50);
+
+      return () => {
+        clearInterval(id);
+      };
+    }
+  }, [isPlaying]);
+
   return (
     <SafeAreaView style={styles.safearea}>
       <View style={styles.inputContainer}>
@@ -184,12 +252,17 @@ const App = () => {
             onMessage={event => {
               // event.nativeEvent.data는 유튜브 플레이어의 재생중인 state 값을 가지고 있다.(문자열)
               // 1 - 재생중. 그 외에는 다른 숫자.
-              // console.log(event.nativeEvent.data);
-              setIsPlaying(event.nativeEvent.data === '1');
+              console.log(event.nativeEvent.data);
+              const {type, data} = JSON.parse(event.nativeEvent.data);
+              if (type === 'player-state') setIsPlaying(data === 1);
+              else if (type === 'duration') setDurationInSec(data);
+              else if (type === 'current-time') setCurrentTimeInSec(data);
             }}
           />
         )}
       </View>
+      <Text
+        style={styles.timeText}>{`${currentTimeText} / ${durationText}`}</Text>
       <View style={styles.controller}>
         {isPlaying ? (
           <TouchableOpacity style={styles.playButton} onPress={onPressPause}>
@@ -200,6 +273,15 @@ const App = () => {
             <Icon name="play-circle" size={39.58} color="#00DDA8" />
           </TouchableOpacity>
         )}
+      </View>
+      <View style={styles.urlListContainer}>
+        <TouchableOpacity
+          hitSlop={{right: 50, left: 50}}
+          onPress={() => setUrl('https://www.youtube.com/watch?v=rlh76p4T6qw')}>
+          <Text style={styles.urlList}>
+            https://www.youtube.com/watch?v=rlh76p4T6qw
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
