@@ -91,6 +91,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#00DDA8',
     width: '0%',
   },
+  seekBarThumb: {
+    width: 14,
+    height: 14,
+    // width, height의 반만 줘도 999 주는거랑 똑같음.
+    borderRadius: 14 / 2,
+    backgroundColor: '#00DDA8',
+    position: 'absolute',
+    top: (-14 + 3) / 2,
+  },
 });
 
 const formatTime = (second: number) => {
@@ -290,6 +299,14 @@ const App = () => {
                 inputRange: [0, durationInSec],
                 outputRange: ['0%', '100%'],
               }),
+            },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.seekBarThumb,
+            {
+              left: '50%',
             },
           ]}
         />
