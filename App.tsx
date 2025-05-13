@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Alert,
+  Animated,
   Dimensions,
   SafeAreaView,
   StyleSheet,
@@ -69,7 +70,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 72,
     alignItems: 'center',
-    flexDirection: 'row',
+    gap: 16,
   },
   urlList: {
     color: '#AEAEB2',
@@ -80,6 +81,15 @@ const styles = StyleSheet.create({
     marginTop: 15,
     marginRight: 20,
     fontSize: 13,
+  },
+  seekBarBackground: {
+    height: 3,
+    backgroundColor: '#D4D4D4',
+  },
+  seekBarProgress: {
+    height: 3,
+    backgroundColor: '#00DDA8',
+    width: '0%',
   },
 });
 
@@ -101,6 +111,7 @@ const App = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [durationInSec, setDurationInSec] = useState(0);
   const [currentTimeInSec, setCurrentTimeInSec] = useState(0);
+  const seekBarAnimRef = useRef(new Animated.Value(0));
   const webViewRef = useRef<WebView>(null);
 
   const onPressOpenLink = useCallback(() => {
@@ -216,6 +227,15 @@ const App = () => {
     }
   }, [isPlaying]);
 
+  useEffect(() => {
+    // 부드러운 애니메이션을 위해 duration 적용
+    Animated.timing(seekBarAnimRef.current, {
+      toValue: currentTimeInSec,
+      duration: 50,
+      useNativeDriver: false,
+    }).start();
+  }, [currentTimeInSec]);
+
   return (
     <SafeAreaView style={styles.safearea}>
       <View style={styles.inputContainer}>
@@ -261,6 +281,19 @@ const App = () => {
           />
         )}
       </View>
+      <View style={styles.seekBarBackground}>
+        <Animated.View
+          style={[
+            styles.seekBarProgress,
+            {
+              width: seekBarAnimRef.current.interpolate({
+                inputRange: [0, durationInSec],
+                outputRange: ['0%', '100%'],
+              }),
+            },
+          ]}
+        />
+      </View>
       <Text
         style={styles.timeText}>{`${currentTimeText} / ${durationText}`}</Text>
       <View style={styles.controller}>
@@ -280,6 +313,13 @@ const App = () => {
           onPress={() => setUrl('https://www.youtube.com/watch?v=rlh76p4T6qw')}>
           <Text style={styles.urlList}>
             https://www.youtube.com/watch?v=rlh76p4T6qw
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          hitSlop={{right: 50, left: 50}}
+          onPress={() => setUrl('https://www.youtube.com/watch?v=FJyxYf3UH6A')}>
+          <Text style={styles.urlList}>
+            https://www.youtube.com/watch?v=FJyxYf3UH6A
           </Text>
         </TouchableOpacity>
       </View>
