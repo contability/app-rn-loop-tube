@@ -3,6 +3,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  PanResponder,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -85,11 +86,14 @@ const styles = StyleSheet.create({
   seekBarBackground: {
     height: 3,
     backgroundColor: '#D4D4D4',
+    // box-none으로 주면 자기 자신은 터치 이벤트 none이지만 자식 요소들은 터치 이벤트 받도록 해줌.
+    pointerEvents: 'box-none',
   },
   seekBarProgress: {
     height: 3,
     backgroundColor: '#00DDA8',
     width: '0%',
+    pointerEvents: 'none',
   },
   seekBarThumb: {
     width: 14,
@@ -122,6 +126,8 @@ const App = () => {
   const [currentTimeInSec, setCurrentTimeInSec] = useState(0);
   const seekBarAnimRef = useRef(new Animated.Value(0));
   const webViewRef = useRef<WebView>(null);
+  const durationInSecRef = useRef(durationInSec);
+  durationInSecRef.current = durationInSec;
 
   const onPressOpenLink = useCallback(() => {
     const {
@@ -220,6 +226,32 @@ const App = () => {
     [currentTimeInSec],
   );
 
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        webViewRef.current?.injectJavaScript('player.pauseVideo(); true;');
+      },
+      onPanResponderMove: (event, gestureEvent) => {
+        // (thumb 위치 / 전체 너비) * 영상 전체 시간.
+        const newTimeInSec =
+          (gestureEvent.moveX / YOUTUBE_WIDTH) * durationInSecRef.current;
+        seekBarAnimRef.current.setValue(newTimeInSec);
+      },
+      onPanResponderRelease: (event, gestureEvent) => {
+        // TODO: seek
+        const newTimeInSec =
+          (gestureEvent.moveX / YOUTUBE_WIDTH) * durationInSecRef.current;
+        webViewRef.current?.injectJavaScript(
+          `player.seekTo(${newTimeInSec}, true); true;`,
+        );
+        // TODO: play
+        webViewRef.current?.injectJavaScript('player.playVideo(); true;');
+      },
+    }),
+  ).current;
+
   useEffect(() => {
     if (isPlaying) {
       const id = setInterval(() => {
@@ -290,7 +322,7 @@ const App = () => {
           />
         )}
       </View>
-      <View style={styles.seekBarBackground}>
+      <View style={styles.seekBarBackground} {...panResponder.panHandlers}>
         <Animated.View
           style={[
             styles.seekBarProgress,
@@ -306,7 +338,10 @@ const App = () => {
           style={[
             styles.seekBarThumb,
             {
-              left: '50%',
+              left: seekBarAnimRef.current.interpolate({
+                inputRange: [0, durationInSec],
+                outputRange: ['0%', '100%'],
+              }),
             },
           ]}
         />
