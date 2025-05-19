@@ -56,6 +56,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    gap: 54,
   },
   playButton: {
     height: 50,
@@ -104,6 +105,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: (-14 + 3) / 2,
   },
+  repeat: {
+    width: 14,
+    height: 14,
+    borderRadius: 14 / 2,
+    backgroundColor: 'red',
+    position: 'absolute',
+    top: (-14 + 3) / 2,
+  },
 });
 
 const formatTime = (second: number) => {
@@ -124,6 +133,10 @@ const App = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [durationInSec, setDurationInSec] = useState(0);
   const [currentTimeInSec, setCurrentTimeInSec] = useState(0);
+  const [repeatStartInSec, setRepeatStartInSec] = useState<number | null>(null);
+  const [repeatEndInSec, setRepeatEndInSec] = useState<number | null>(null);
+  const [repeated, setRepeated] = useState(false);
+
   const seekBarAnimRef = useRef(new Animated.Value(0));
   const webViewRef = useRef<WebView>(null);
   const durationInSecRef = useRef(durationInSec);
@@ -240,17 +253,28 @@ const App = () => {
         seekBarAnimRef.current.setValue(newTimeInSec);
       },
       onPanResponderRelease: (event, gestureEvent) => {
-        // TODO: seek
         const newTimeInSec =
           (gestureEvent.moveX / YOUTUBE_WIDTH) * durationInSecRef.current;
         webViewRef.current?.injectJavaScript(
           `player.seekTo(${newTimeInSec}, true); true;`,
         );
-        // TODO: play
         webViewRef.current?.injectJavaScript('player.playVideo(); true;');
       },
     }),
   ).current;
+
+  const onPressSetRepeatTime = useCallback(() => {
+    if (repeatStartInSec == null) setRepeatStartInSec(currentTimeInSec);
+    else if (repeatEndInSec == null) setRepeatEndInSec(currentTimeInSec);
+    else {
+      setRepeatStartInSec(null);
+      setRepeatEndInSec(null);
+    }
+  }, [currentTimeInSec, repeatEndInSec, repeatStartInSec]);
+
+  const onPressRepeat = useCallback(() => {
+    setRepeated(prev => !prev);
+  }, []);
 
   useEffect(() => {
     if (isPlaying) {
@@ -276,6 +300,15 @@ const App = () => {
       useNativeDriver: false,
     }).start();
   }, [currentTimeInSec]);
+
+  useEffect(() => {
+    if (repeated && repeatStartInSec != null && repeatEndInSec != null) {
+      if (currentTimeInSec > repeatEndInSec)
+        webViewRef.current?.injectJavaScript(
+          `player.seekTo(${repeatStartInSec}, true); true;`,
+        );
+    }
+  }, [currentTimeInSec, repeatEndInSec, repeatStartInSec, repeated]);
 
   return (
     <SafeAreaView style={styles.safearea}>
@@ -345,10 +378,29 @@ const App = () => {
             },
           ]}
         />
+        {repeatStartInSec != null && (
+          <View
+            style={[
+              styles.repeat,
+              {left: (repeatStartInSec / durationInSec) * YOUTUBE_WIDTH},
+            ]}
+          />
+        )}
+        {repeatEndInSec != null && (
+          <View
+            style={[
+              styles.repeat,
+              {left: (repeatEndInSec / durationInSec) * YOUTUBE_WIDTH},
+            ]}
+          />
+        )}
       </View>
       <Text
         style={styles.timeText}>{`${currentTimeText} / ${durationText}`}</Text>
       <View style={styles.controller}>
+        <TouchableOpacity onPress={onPressSetRepeatTime}>
+          <Icon name="code-brackets" size={28} color="#D9D9D9" />
+        </TouchableOpacity>
         {isPlaying ? (
           <TouchableOpacity style={styles.playButton} onPress={onPressPause}>
             <Icon name="pause-circle" size={41.67} color="#E5E5EA" />
@@ -358,6 +410,13 @@ const App = () => {
             <Icon name="play-circle" size={39.58} color="#00DDA8" />
           </TouchableOpacity>
         )}
+        <TouchableOpacity onPress={onPressRepeat}>
+          <Icon
+            name="repeat"
+            size={28}
+            color={repeated ? '#00DDA8' : '#E5E5EA'}
+          />
+        </TouchableOpacity>
       </View>
       <View style={styles.urlListContainer}>
         <TouchableOpacity
