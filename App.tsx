@@ -352,6 +352,7 @@ const App = () => {
               else if (type === 'duration') setDurationInSec(data);
               else if (type === 'current-time') setCurrentTimeInSec(data);
             }}
+            webviewDebuggingEnabled={true}
           />
         )}
       </View>
